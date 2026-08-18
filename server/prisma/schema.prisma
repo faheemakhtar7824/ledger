@@ -1,0 +1,103 @@
+// This is your Prisma schema file
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String   @id @default(uuid())
+  name              String
+  username          String   @unique
+  email             String   @unique
+  passwordHash      String   @map("password_hash")
+  currencyPreference String  @default("PKR") @map("currency_preference")
+  emailVerified     Boolean  @default(false) @map("email_verified")
+  failedLoginAttempts Int    @default(0) @map("failed_login_attempts")
+  lockedUntil       DateTime? @map("locked_until")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  spaces              Space[]
+  verificationTokens  VerificationToken[]
+
+  @@map("users")
+}
+
+model Space {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  name      String
+  icon      String?
+  color     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categories Category[]
+  expenses   Expense[]
+  budgets    Budget[]
+
+  @@map("spaces")
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  spaceId   String   @map("space_id")
+  name      String
+  icon      String?
+  color     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  space    Space     @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  expenses Expense[]
+  budgets  Budget[]
+
+  @@map("categories")
+}
+
+model Expense {
+  id         String   @id @default(uuid())
+  spaceId    String   @map("space_id")
+  categoryId String   @map("category_id")
+  amount     Decimal  @db.Decimal(12, 2)
+  date       DateTime
+  note       String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  space    Space    @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@map("expenses")
+}
+
+model Budget {
+  id            String   @id @default(uuid())
+  spaceId       String   @map("space_id")
+  categoryId    String?  @map("category_id")
+  monthlyLimit  Decimal  @db.Decimal(12, 2) @map("monthly_limit")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  space    Space     @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@map("budgets")
+}
+
+model VerificationToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  code      String
+  purpose   String   // "email_verification" | "password_reset"
+  expiresAt DateTime @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("verification_tokens")
+}
