@@ -1,1 +1,531 @@
 @import "tailwindcss";
+
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Plus Jakarta Sans', sans-serif;
+  --font-serif: Georgia, 'Times New Roman', serif;
+  --ease-apple: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ---------- Base mode (light/dark) ---------- */
+:root {
+  --bg-page: #F5F5F7;
+  --surface-2: #FFFFFF;
+  --surface-1: #F0F0F2;
+  --border: rgba(0, 0, 0, 0.08);
+  --text-primary: #1D1D1F;
+  --text-secondary: #6E6E73;
+  --text-muted: #A1A1A6;
+  --text-accent: #0C7C59;
+  --text-danger: #D8453A;
+}
+
+[data-mode="dark"] {
+  --bg-page: #000000;
+  --surface-2: #1C1C1E;
+  --surface-1: #2C2C2E;
+  --border: rgba(255, 255, 255, 0.1);
+  --text-primary: #F2ECDD;
+  --text-secondary: #8E8E93;
+  --text-muted: #636366;
+  --text-danger: #FF6B60;
+}
+
+/* ---------- Space accent (business/personal), each with own dark variant ---------- */
+.space-business {
+  --text-accent: #0B6E4F;
+  --gold: #B08D3F;
+}
+[data-mode="dark"] .space-business {
+  --text-accent: #2FD48F;
+  --gold: #D4AF61;
+}
+
+.space-personal {
+  --text-accent: #33359A;
+  --gold: #8E7A4E;
+}
+[data-mode="dark"] .space-personal {
+  --text-accent: #7B7DE0;
+  --gold: #C4B27E;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Plus Jakarta Sans', sans-serif;
+  background: var(--bg-page);
+  color: var(--text-primary);
+  transition: background 0.3s, color 0.3s;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.label-serif {
+  font-family: Georgia, 'Times New Roman', serif;
+  letter-spacing: 0.3px;
+}
+
+/* ================= Auth screens ================= */
+
+.auth-input {
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  border-radius: 12px;
+  border: 0.5px solid var(--border);
+  background: var(--surface-1);
+  color: var(--text-primary);
+  font-size: 14px;
+  box-sizing: border-box;
+}
+.auth-input:focus {
+  outline: none;
+  border-color: var(--text-accent);
+}
+.auth-submit {
+  width: 100%;
+  padding: 13px 0;
+  border: none;
+  border-radius: 12px;
+  color: var(--surface-2);
+  font-size: 14px;
+  font-weight: 500;
+  margin: 6px 0 18px;
+  cursor: pointer;
+}
+.auth-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ================= Dashboard ================= */
+
+.seg-wrap {
+  display: flex;
+  gap: 2px;
+  background: var(--surface-1);
+  border-radius: 10px;
+  padding: 3px;
+  margin-bottom: 18px;
+  width: fit-content;
+}
+.seg {
+  border: none;
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.seg.active {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+.seg:not(.active) {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+.metric-card {
+  background: var(--surface-1);
+  border-radius: 16px;
+  padding: 14px;
+}
+.metric-card p:first-child {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0 0 4px;
+}
+.metric-card p:last-child {
+  font-size: 18px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.icon-tile {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--surface-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.icon-tile i {
+  font-size: 16px;
+  color: var(--text-accent);
+}
+
+.cat-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.cat-body {
+  flex: 1;
+  min-width: 0;
+}
+.cat-top {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  font-size: 13px;
+}
+.bar-track {
+  height: 5px;
+  background: var(--surface-1);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.bar-fill {
+  height: 5px;
+  background: var(--text-accent);
+  border-radius: 99px;
+  transition: width 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.txn-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 11px 0;
+  border-bottom: 0.5px solid var(--border);
+}
+.txn-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.txn-name {
+  font-size: 13.5px;
+  margin: 0;
+  color: var(--text-primary);
+}
+.txn-date {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin: 0;
+}
+.txn-amt {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.fab {
+  position: fixed;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--text-accent);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  z-index: 30;
+}
+.fab i {
+  font-size: 24px;
+  color: var(--surface-2);
+}
+
+/* Top-right circular icon buttons (settings gear, mode toggle) */
+.icon-circle-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+/* Avatar with initials — same visual language as mockup's .settings-avatar */
+.avatar-circle {
+  border-radius: 50%;
+  background: var(--surface-1);
+  color: var(--text-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* ================= Add/Edit Expense bottom sheet ================= */
+
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 40;
+}
+.sheet-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 41;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--surface-2);
+  border-radius: 24px 24px 0 0;
+}
+.sheet-content {
+  padding: 20px 18px 28px;
+}
+.sheet-handle {
+  width: 36px;
+  height: 5px;
+  background: var(--surface-1);
+  border-radius: 99px;
+  margin: 10px auto 16px;
+}
+.sheet-title {
+  font-size: 17px;
+  font-weight: 500;
+  text-align: center;
+  margin: 0 0 24px;
+  color: var(--text-primary);
+}
+.amount-input {
+  width: 100%;
+  text-align: center;
+  font-size: 44px;
+  font-weight: 500;
+  margin: 0 0 28px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  outline: none;
+}
+.amount-input::placeholder {
+  color: var(--text-muted);
+}
+
+.field-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 0.5px solid var(--border);
+  transition: border-color 0.15s ease;
+}
+.field-row:focus-within {
+  border-bottom: 0.5px solid var(--text-accent);
+}
+.field-row i {
+  font-size: 18px;
+  color: var(--text-secondary);
+  width: 20px;
+}
+.field-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+  width: 70px;
+  flex-shrink: 0;
+}
+.field-value {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+.field-value:focus,
+input.field-value:focus {
+  outline: none;
+}
+
+.inline-cat-input {
+  flex: 1;
+  font-size: 14px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 0.5px solid var(--border);
+  background: var(--surface-1);
+  color: var(--text-primary);
+}
+.inline-cat-input:focus {
+  outline: none;
+  border-color: var(--text-accent);
+}
+.inline-cat-btn {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--surface-2);
+  background: var(--text-accent);
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.save-btn {
+  margin-top: 24px;
+  width: 100%;
+  padding: 14px 0;
+  border: none;
+  border-radius: 14px;
+  background: var(--text-accent);
+  color: var(--surface-2);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ================= Categories management ================= */
+
+.cat-manage-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 0.5px solid var(--border);
+}
+.cat-manage-body {
+  flex: 1;
+  min-width: 0;
+}
+.cat-manage-name {
+  font-size: 14px;
+  margin: 0;
+  color: var(--text-primary);
+}
+.cat-manage-spend {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin: 0;
+}
+.add-cat-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 0;
+  cursor: pointer;
+  color: var(--text-accent);
+}
+.add-cat-btn i {
+  font-size: 18px;
+}
+.add-cat-btn span {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.back-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--surface-1);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+/* ================= Settings ================= */
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 0 20px;
+}
+.settings-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--surface-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-accent);
+  flex-shrink: 0;
+}
+.settings-name {
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0;
+  color: var(--text-primary);
+}
+.settings-sub {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  margin: 2px 0 0;
+}
+.settings-group-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin: 18px 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 0.5px solid var(--border);
+}
+.settings-row i:first-child {
+  font-size: 17px;
+  color: var(--text-accent);
+  width: 20px;
+}
+.settings-row-label {
+  font-size: 14px;
+  flex: 1;
+  color: var(--text-primary);
+}
+.settings-row-value {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.settings-row i:last-child {
+  font-size: 15px;
+  color: var(--text-muted);
+}
+.space-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+}
+.space-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}

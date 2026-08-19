@@ -5,6 +5,15 @@ const requireAuth = require('../middleware/requireAuth');
 
 router.use(requireAuth);
 
+async function findDuplicateName(userId, name, excludeSpaceId = null) {
+  const spaces = await prisma.space.findMany({
+    where: { userId, ...(excludeSpaceId ? { id: { not: excludeSpaceId } } : {}) },
+    select: { id: true, name: true },
+  });
+  const normalized = name.trim().toLowerCase();
+  return spaces.find((s) => s.name.trim().toLowerCase() === normalized) || null;
+}
+
 // GET /api/spaces — list all spaces for the authenticated user
 router.get('/', async (req, res) => {
   try {
@@ -28,6 +37,13 @@ router.post('/', async (req, res) => {
   }
 
   try {
+    // Server-side uniqueness check per 05-security-requirements.md —
+    // all inputs validated server-side, not just client-side.
+    const duplicate = await findDuplicateName(req.userId, name);
+    if (duplicate) {
+      return res.status(409).json({ error: `You already have a space named "${duplicate.name}"` });
+    }
+
     const space = await prisma.space.create({
       data: {
         userId: req.userId,
@@ -60,6 +76,7 @@ router.get('/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch space' });
   }
 });
+
 // PUT /api/spaces/:id — rename / update icon/color
 router.put('/:id', async (req, res) => {
   const { name, icon, color } = req.body;
@@ -75,6 +92,10 @@ router.put('/:id', async (req, res) => {
     if (name !== undefined) {
       if (typeof name !== 'string' || !name.trim()) {
         return res.status(400).json({ error: 'Space name is required' });
+      }
+      const duplicate = await findDuplicateName(req.userId, name, space.id);
+      if (duplicate) {
+        return res.status(409).json({ error: `You already have a space named "${duplicate.name}"` });
       }
       data.name = name.trim();
     }

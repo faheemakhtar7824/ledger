@@ -3,9 +3,15 @@ require('dotenv').config();
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const { prisma } = require('./src/db');
 const authRoutes = require('./src/routes/auth');
+const spacesRoutes = require('./src/routes/spaces');
+const categoriesRoutes = require('./src/routes/categories');
+const expensesRoutes = require('./src/routes/expense');
+const budgetRoutes = require('./src/routes/budget');
+const reportsRoutes = require('./src/routes/reports');
 
 const app = express();
 
@@ -19,6 +25,7 @@ app.use(
 );
 
 app.use(express.json());
+app.use(cookieParser());
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -30,6 +37,11 @@ app.use('/api', apiLimiter);
 
 // --- Routes ---
 app.use('/api/auth', authRoutes);
+app.use('/api/spaces', spacesRoutes);
+app.use('/api', categoriesRoutes);
+app.use('/api', expensesRoutes);
+app.use('/api', budgetRoutes);
+app.use('/api', reportsRoutes);
 
 app.get('/api/health', async (req, res) => {
   try {

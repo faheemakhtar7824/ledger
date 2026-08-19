@@ -1,0 +1,56 @@
+const nodemailer = require('nodemailer');
+
+// Gmail SMTP transport via App Password — no domain verification needed,
+// unlike Resend, since Gmail's own infrastructure sends the mail.
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_APP_PASSWORD,
+  },
+});
+
+// Fails loudly at startup if credentials are missing/wrong, rather than
+// silently failing on the first real signup attempt.
+transporter.verify((err) => {
+  if (err) {
+    console.error('Gmail SMTP configuration error:', err.message);
+  } else {
+    console.log('Gmail SMTP ready to send emails');
+  }
+});
+
+function otpEmailHtml(code, purpose) {
+  const heading = purpose === 'password_reset' ? 'Reset your password' : 'Verify your email';
+  const body =
+    purpose === 'password_reset'
+      ? 'Use this code to reset your Ledger password. It expires in 10 minutes.'
+      : 'Use this code to verify your email and activate your Ledger account. It expires in 10 minutes.';
+
+  return `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 420px; margin: 0 auto; padding: 32px 24px; background: #F5F5F7;">
+      <div style="width: 48px; height: 48px; border-radius: 12px; background: #0B6E4F; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+      </div>
+      <h2 style="color: #1D1D1F; font-size: 20px; font-weight: 500; margin: 0 0 8px;">${heading}</h2>
+      <p style="color: #6E6E73; font-size: 14px; margin: 0 0 24px;">${body}</p>
+      <div style="background: #FFFFFF; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 20px;">
+        <span style="font-size: 32px; font-weight: 600; letter-spacing: 6px; color: #0B6E4F;">${code}</span>
+      </div>
+      <p style="color: #A1A1A6; font-size: 12px; margin: 0;">If you didn't request this, you can safely ignore this email.</p>
+    </div>
+  `;
+}
+
+// purpose: 'email_verification' | 'password_reset'
+async function sendOtpEmail(to, code, purpose) {
+  const subject = purpose === 'password_reset' ? 'Your Ledger password reset code' : 'Verify your Ledger account';
+
+  await transporter.sendMail({
+    from: `"Ledger" <${process.env.GMAIL_USER}>`,
+    to,
+    subject,
+    html: otpEmailHtml(code, purpose),
+  });
+}
+
+module.exports = { sendOtpEmail };
