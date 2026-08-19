@@ -3,6 +3,7 @@ const router = express.Router();
 const prisma = require('../lib/prisma');
 const requireAuth = require('../middleware/requireAuth');
 const PDFDocument = require('pdfkit');
+const path = require('path');
 
 router.use(requireAuth);
 
@@ -133,13 +134,25 @@ router.get('/spaces/:spaceId/reports/export.csv', async (req, res) => {
     const space = await getOwnedSpace(req.params.spaceId, req.userId);
     if (!space) return res.status(404).json({ error: 'Space not found' });
 
+    const { startDate, endDate } = req.query;
+    const where = { spaceId: space.id };
+    if (startDate || endDate) {
+      where.date = {};
+      if (startDate) where.date.gte = new Date(startDate);
+      if (endDate) where.date.lte = new Date(endDate);
+    }
+
     const expenses = await prisma.expense.findMany({
-      where: { spaceId: space.id },
+      where,
       include: { category: true },
       orderBy: { date: 'desc' },
     });
 
     const escapeCsv = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+
+    const rangeLabel = startDate || endDate
+      ? `${startDate || 'start'}_to_${endDate || 'now'}`
+      : 'all-time';
 
     const header = 'Date,Category,Amount,Note\n';
     const rows = expenses
@@ -154,7 +167,7 @@ router.get('/spaces/:spaceId/reports/export.csv', async (req, res) => {
       .join('\n');
 
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="expenses-${space.name}.csv"`);
+    res.setHeader('Content-Disposition', `attachment; filename="ledger-${space.name}-${rangeLabel}.csv"`);
     res.send(header + rows);
   } catch (err) {
     console.error(err);
@@ -169,45 +182,81 @@ router.get('/spaces/:spaceId/reports/export.pdf', async (req, res) => {
     const space = await getOwnedSpace(req.params.spaceId, req.userId);
     if (!space) return res.status(404).json({ error: 'Space not found' });
 
+    const { startDate, endDate } = req.query;
+    const where = { spaceId: space.id };
+    if (startDate || endDate) {
+      where.date = {};
+      if (startDate) where.date.gte = new Date(startDate);
+      if (endDate) where.date.lte = new Date(endDate);
+    }
+
     const expenses = await prisma.expense.findMany({
-      where: { spaceId: space.id },
+      where,
       include: { category: true },
       orderBy: { date: 'desc' },
     });
 
+    const rangeLabel = startDate || endDate
+      ? `${startDate || 'start'}_to_${endDate || 'now'}`
+      : 'all-time';
+
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="expenses-${space.name}.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="ledger-${space.name}-${rangeLabel}.pdf"`);
 
     const doc = new PDFDocument({ margin: 40 });
     doc.pipe(res);
 
-    doc.fontSize(16).text(`Expense report — ${space.name}`, { align: 'left' });
-    doc.moveDown();
+    // Branded header — logo, app name, space name, generated timestamp,
+    // and the covered date range so the exported file is self-explanatory
+    // even opened weeks later with no other context.
+    const logoPath = path.join(__dirname, '..', 'assets', 'icon-512.png');
+    try {
+      doc.image(logoPath, 40, 36, { width: 36, height: 36 });
+    } catch {
+      // Logo file missing — fall back to text-only header, don't fail the export
+    }
+
+    doc.fontSize(16).fillColor('#0B6E4F').text('Ledger', 86, 40);
+    doc.fontSize(9).fillColor('#6E6E73').text(space.name, 86, 60);
+
+    doc.fontSize(9).fillColor('#A1A1A6').text(
+      `Generated ${new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`,
+      40, 90
+    );
+    const rangeText = startDate || endDate
+      ? `Range: ${startDate ? new Date(startDate).toLocaleDateString('en-GB') : 'start'} – ${endDate ? new Date(endDate).toLocaleDateString('en-GB') : 'now'}`
+      : 'Range: all time';
+    doc.text(rangeText, 40, 104);
+
+    doc.moveTo(40, 122).lineTo(555, 122).strokeColor('#E5E5E7').stroke();
 
     const total = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
-    doc.fontSize(10).fillColor('#6E6E73').text(`Total: Rs ${total.toLocaleString()} · ${expenses.length} expenses`);
-    doc.moveDown();
+    doc.moveDown(1.2);
+    doc.fontSize(10).fillColor('#1D1D1F').text(`Total: Rs ${total.toLocaleString()} · ${expenses.length} expenses`, 40, 134);
 
-    doc.fontSize(11).fillColor('#1D1D1F');
+    let y = 160;
     const colX = { date: 40, category: 130, amount: 300, note: 380 };
 
-    doc.font('Helvetica-Bold');
-    doc.text('Date', colX.date, doc.y, { continued: false });
-    doc.text('Category', colX.category, doc.y - doc.currentLineHeight());
-    doc.text('Amount', colX.amount, doc.y - doc.currentLineHeight());
-    doc.text('Note', colX.note, doc.y - doc.currentLineHeight());
-    doc.moveDown(0.5);
-    doc.font('Helvetica');
+    doc.font('Helvetica-Bold').fontSize(10).fillColor('#1D1D1F');
+    doc.text('Date', colX.date, y);
+    doc.text('Category', colX.category, y);
+    doc.text('Amount', colX.amount, y);
+    doc.text('Note', colX.note, y);
+    y += 18;
+    doc.moveTo(40, y).lineTo(555, y).strokeColor('#E5E5E7').stroke();
+    y += 8;
 
+    doc.font('Helvetica').fontSize(9.5).fillColor('#1D1D1F');
     expenses.forEach((e) => {
-      const y = doc.y;
-      if (y > 720) doc.addPage();
-      const rowY = doc.y;
-      doc.text(e.date.toISOString().slice(0, 10), colX.date, rowY, { width: 80 });
-      doc.text(e.category.name, colX.category, rowY, { width: 160 });
-      doc.text(`Rs ${Number(e.amount).toLocaleString()}`, colX.amount, rowY, { width: 70 });
-      doc.text(e.note || '-', colX.note, rowY, { width: 150 });
-      doc.moveDown(0.7);
+      if (y > 740) {
+        doc.addPage();
+        y = 50;
+      }
+      doc.text(e.date.toISOString().slice(0, 10), colX.date, y, { width: 80 });
+      doc.text(e.category.name, colX.category, y, { width: 160 });
+      doc.text(`Rs ${Number(e.amount).toLocaleString()}`, colX.amount, y, { width: 70 });
+      doc.text(e.note || '-', colX.note, y, { width: 150 });
+      y += 20;
     });
 
     doc.end();

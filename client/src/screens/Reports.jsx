@@ -45,6 +45,7 @@ export default function Reports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedBucketIndex, setSelectedBucketIndex] = useState(null);
+  const [exportRange, setExportRange] = useState('all'); // 'all' | 'month'
 
   const load = useCallback(async () => {
     if (!activeSpaceId) return;
@@ -81,7 +82,16 @@ export default function Reports() {
   function exportFile(type) {
     const base = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
     const path = type === 'csv' ? ENDPOINTS.reports.exportCsv(activeSpaceId) : ENDPOINTS.reports.exportPdf(activeSpaceId);
-    window.open(`${base}${path}`, '_blank');
+
+    let query = '';
+    if (exportRange === 'month') {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+      const end = now.toISOString().slice(0, 10);
+      query = `?startDate=${start}&endDate=${end}`;
+    }
+
+    window.open(`${base}${path}${query}`, '_blank');
   }
 
   if (loading) {
@@ -116,9 +126,6 @@ export default function Reports() {
       const arrow = mom.diff > 0 ? '↑' : mom.diff < 0 ? '↓' : '–';
       const pct = Math.abs(mom.pctChange);
       momCaption = `${arrow} ${formatMoney(Math.abs(mom.diff), currency)} (${pct}%) vs ${formatMoney(mom.lastMonth, currency)} last month`;
-      // Was hardcoded #D8453A / #0C7C59 — swapped to CSS vars so this
-      // respects dark mode's brighter danger/accent tones instead of
-      // rendering the flat light-mode hex on a dark background.
       momCaptionColor = mom.diff > 0 ? 'var(--text-danger)' : mom.diff < 0 ? 'var(--text-accent)' : 'var(--text-muted)';
     }
   }
@@ -234,10 +241,6 @@ export default function Reports() {
                         transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
                         style={{
                           width: '100%',
-                          // Was hardcoded '#0B6E4F' — now uses the live
-                          // --text-accent variable, which correctly
-                          // switches to the brighter dark-mode emerald
-                          // (#2FD48F) for contrast on dark backgrounds.
                           backgroundColor: hasData
                             ? isSelected
                               ? 'var(--text-accent)'
@@ -306,6 +309,35 @@ export default function Reports() {
       })}
 
       <p className="settings-group-label" style={{ marginTop: 28 }}>Export</p>
+
+      <div
+        style={{
+          display: 'inline-flex', background: 'var(--surface-1)', borderRadius: 10,
+          padding: 3, gap: 2, marginBottom: 10,
+        }}
+      >
+        <button
+          onClick={() => setExportRange('all')}
+          style={{
+            border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: 12.5, fontWeight: 500,
+            cursor: 'pointer', background: exportRange === 'all' ? 'var(--surface-2)' : 'transparent',
+            color: exportRange === 'all' ? 'var(--text-primary)' : 'var(--text-secondary)',
+          }}
+        >
+          All time
+        </button>
+        <button
+          onClick={() => setExportRange('month')}
+          style={{
+            border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: 12.5, fontWeight: 500,
+            cursor: 'pointer', background: exportRange === 'month' ? 'var(--surface-2)' : 'transparent',
+            color: exportRange === 'month' ? 'var(--text-primary)' : 'var(--text-secondary)',
+          }}
+        >
+          This month
+        </button>
+      </div>
+
       <div className="settings-row" style={{ cursor: 'pointer' }} onClick={() => exportFile('csv')}>
         <IconFileSpreadsheet size={17} />
         <span className="settings-row-label">Export as CSV</span>
