@@ -40,10 +40,8 @@ function isStrongPassword(password) {
   return regex.test(password);
 }
 
-// Emails are case-insensitive by convention (RFC 5321 technically allows
-// case-sensitive local parts, but no major provider actually enforces
-// this, and users expect Test@Gmail.com == test@gmail.com). Normalize on
-// every read/write so lookups are consistent regardless of how it was typed.
+// Emails are case-insensitive by convention. Normalize on every read/write
+// so lookups are consistent regardless of how it was typed.
 function normalizeEmail(email) {
   return typeof email === 'string' ? email.trim().toLowerCase() : email;
 }
@@ -166,6 +164,46 @@ router.post("/verify-otp", authLimiter, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Verification failed" });
+  }
+});
+
+// POST /api/auth/resend-verification — issue a fresh OTP for an
+// unverified account. Same enumeration-safe pattern as forgot-password:
+// don't reveal whether the email exists or is already verified.
+router.post("/resend-verification", authLimiter, async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body.email);
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
+    }
+
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (user && !user.emailVerified) {
+      const otp = generateOtp();
+      const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+      await prisma.verificationToken.create({
+        data: {
+          userId: user.id,
+          code: otp,
+          purpose: "email_verification",
+          expiresAt: otpExpiresAt,
+        },
+      });
+
+      try {
+        await sendOtpEmail(user.email, otp, "email_verification");
+      } catch (mailErr) {
+        console.error("Failed to resend verification email:", mailErr.message);
+        console.log(`[Fallback] OTP for ${user.email}: ${otp}`);
+      }
+    }
+
+    res.json({ message: "If that account needs verification, a new code has been sent." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to resend code" });
   }
 });
 
