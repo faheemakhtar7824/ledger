@@ -1,5 +1,4 @@
 require('dotenv').config();
-
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
@@ -35,14 +34,11 @@ const apiLimiter = rateLimit({
 });
 app.use('/api', apiLimiter);
 
-// --- Routes ---
-app.use('/api/auth', authRoutes);
-app.use('/api/spaces', spacesRoutes);
-app.use('/api', categoriesRoutes);
-app.use('/api', expensesRoutes);
-app.use('/api', budgetRoutes);
-app.use('/api', reportsRoutes);
-
+// Health check — MUST be registered before any router that applies
+// requireAuth unconditionally at the router level (categories, expense,
+// budget, reports all do `router.use(requireAuth)` mounted at '/api',
+// which intercepts every /api/* request by path-prefix match, including
+// this one, if registered after them).
 app.get('/api/health', async (req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
@@ -61,6 +57,14 @@ app.get('/api/health', async (req, res) => {
     });
   }
 });
+
+// --- Routes ---
+app.use('/api/auth', authRoutes);
+app.use('/api/spaces', spacesRoutes);
+app.use('/api', categoriesRoutes);
+app.use('/api', expensesRoutes);
+app.use('/api', budgetRoutes);
+app.use('/api', reportsRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
