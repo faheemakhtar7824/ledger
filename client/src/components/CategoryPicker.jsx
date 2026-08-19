@@ -3,8 +3,8 @@ import IconTile from './IconTile';
 import { IconChevronDown, IconCheck, IconPlus } from './icons';
 
 // Custom dropdown replacing the native <select>. "Add new category" is
-// pinned outside the scrollable list (not buried at the bottom of it) so
-// it's always reachable in one tap regardless of how many categories exist.
+// pinned outside the scrollable list so it's always reachable in one tap
+// regardless of how many categories exist.
 export default function CategoryPicker({ categories, value, onSelect, onAddNew }) {
   const [open, setOpen] = useState(false);
   const selected = categories.find((c) => c.id === value);
@@ -48,8 +48,7 @@ export default function CategoryPicker({ categories, value, onSelect, onAddNew }
               maxHeight: 260,
             }}
           >
-            {/* Pinned "Add new category" — always visible, not scrollable
-                away like it was before. */}
+            {/* Pinned "Add new category" — always visible, not scrollable away */}
             <div
               onClick={() => {
                 onAddNew();
@@ -66,7 +65,20 @@ export default function CategoryPicker({ categories, value, onSelect, onAddNew }
               <span style={{ fontSize: 13.5, fontWeight: 500 }}>Add new category</span>
             </div>
 
-            <div style={{ overflowY: 'auto', padding: 6 }}>
+            <div
+              style={{
+                overflowY: 'auto',
+                padding: 6,
+                // Explicit touch-scroll support — without this, some
+                // mobile browsers can fail to scroll a nested container
+                // when it sits inside another scrollable/fixed-position
+                // ancestor (the bottom sheet), even though overflowY:auto
+                // is set.
+                WebkitOverflowScrolling: 'touch',
+                overscrollBehavior: 'contain',
+                touchAction: 'pan-y',
+              }}
+            >
               {categories.length === 0 && (
                 <p style={{ fontSize: 13, color: 'var(--text-muted)', padding: '10px 8px' }}>No categories yet</p>
               )}

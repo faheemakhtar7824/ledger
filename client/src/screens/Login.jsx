@@ -51,7 +51,18 @@ export default function Login() {
         navigate('/');
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Something went wrong. Try again.');
+      const message = err.response?.data?.error || 'Something went wrong. Try again.';
+
+      // Unverified accounts get routed straight to Verify OTP (with a
+      // working resend button there) instead of a dead-end error message
+      // — this was the gap that left users stuck after closing the tab
+      // mid-signup with no way back into the verification flow.
+      if (message === 'Email not verified') {
+        navigate('/verify-otp', { state: { email: form.email } });
+        return;
+      }
+
+      setError(message);
     } finally {
       setSubmitting(false);
     }
