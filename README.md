@@ -22,7 +22,7 @@ Ledger is a mobile-first expense tracker built as a Final Year Project — and p
 
 Most expense trackers assume one undifferentiated pool of spending. Ledger doesn't: every user gets **Spaces** — named, independently-scoped contexts (e.g. *Personal*, *Business*) — each with its own categories, budget, and dashboard, all under one login. Switching Spaces re-themes the entire app (a distinct accent color per Space), so which context you're in is never ambiguous.
 
-**Live demo:** https://ledger-eight-dun.vercel.app/ — interactive, light/dark toggle
+**Live demo:** https://ledger-eight-dun.vercel.app/
 
 ---
 
