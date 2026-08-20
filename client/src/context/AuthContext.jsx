@@ -57,6 +57,12 @@ export function AuthProvider({ children }) {
     return res.data;
   }, []);
 
+  const updateRetention = useCallback(async (retentionMonths) => {
+    const res = await api.patch('/auth/retention', { retentionMonths });
+    setUser((prev) => ({ ...prev, expenseRetentionMonths: res.data.expenseRetentionMonths }));
+    return res.data;
+  }, []);
+
   const logout = useCallback(async () => {
     await api.post(ENDPOINTS.auth.logout);
     setUser(null);
@@ -72,6 +78,7 @@ export function AuthProvider({ children }) {
     forgotPassword,
     resetPassword,
     updateCurrency,
+    updateRetention,
     logout,
   };
 

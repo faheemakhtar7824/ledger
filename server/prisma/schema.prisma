@@ -11,19 +11,20 @@ datasource db {
 }
 
 model User {
-  id                String   @id @default(uuid())
-  name              String
-  username          String   @unique
-  email             String   @unique
-  passwordHash      String   @map("password_hash")
-  currencyPreference String  @default("PKR") @map("currency_preference")
-  emailVerified     Boolean  @default(false) @map("email_verified")
-  failedLoginAttempts Int    @default(0) @map("failed_login_attempts")
-  lockedUntil       DateTime? @map("locked_until")
-  createdAt         DateTime @default(now()) @map("created_at")
+  id                 String   @id @default(uuid())
+  name               String
+  username           String   @unique
+  email              String   @unique
+  passwordHash       String   @map("password_hash")
+  currencyPreference String   @default("PKR") @map("currency_preference")
+  emailVerified      Boolean  @default(false) @map("email_verified")
+  failedLoginAttempts Int     @default(0) @map("failed_login_attempts")
+  lockedUntil        DateTime? @map("locked_until")
+  expenseRetentionMonths Int? @default(36) @map("expense_retention_months")
+  createdAt          DateTime @default(now()) @map("created_at")
 
-  spaces              Space[]
-  verificationTokens  VerificationToken[]
+  spaces               Space[]
+  verificationTokens   VerificationToken[]
 
   @@map("users")
 }
