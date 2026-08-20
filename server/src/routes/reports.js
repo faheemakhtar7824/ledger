@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../lib/prisma');
 const requireAuth = require('../middleware/requireAuth');
-const PDFDocument = require('pdfkit');
 const path = require('path');
 
 router.use(requireAuth);
@@ -26,7 +25,7 @@ router.get('/spaces/:spaceId/reports/trend', async (req, res) => {
     const space = await getOwnedSpace(req.params.spaceId, req.userId);
     if (!space) return res.status(404).json({ error: 'Space not found' });
 
-    const bucketCount = period === 'weekly' ? 8 : 6; // last 8 weeks or last 6 months
+    const bucketCount = period === 'weekly' ? 8 : 6;
     const buckets = [];
 
     for (let i = bucketCount - 1; i >= 0; i--) {
@@ -96,7 +95,7 @@ router.get('/spaces/:spaceId/reports/category-breakdown', async (req, res) => {
   }
 });
 
-// GET /api/spaces/:spaceId/reports/mom-comparison — month-over-month
+// GET /api/spaces/:spaceId/reports/mom-comparison
 router.get('/spaces/:spaceId/reports/mom-comparison', async (req, res) => {
   try {
     const space = await getOwnedSpace(req.params.spaceId, req.userId);
@@ -125,6 +124,62 @@ router.get('/spaces/:spaceId/reports/mom-comparison', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch comparison data' });
+  }
+});
+
+// GET /api/spaces/:spaceId/reports/range-summary?startDate=...&endDate=...
+router.get('/spaces/:spaceId/reports/range-summary', async (req, res) => {
+  try {
+    const space = await getOwnedSpace(req.params.spaceId, req.userId);
+    if (!space) return res.status(404).json({ error: 'Space not found' });
+
+    const { startDate, endDate } = req.query;
+    if (!startDate || !endDate) {
+      return res.status(400).json({ error: 'startDate and endDate are required' });
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return res.status(400).json({ error: 'Invalid date' });
+    }
+
+    const where = { spaceId: space.id, date: { gte: start, lte: end } };
+
+    const [totalAgg, grouped] = await Promise.all([
+      prisma.expense.aggregate({ where, _sum: { amount: true }, _count: true }),
+      prisma.expense.groupBy({
+        by: ['categoryId'],
+        where,
+        _sum: { amount: true },
+        _count: true,
+      }),
+    ]);
+
+    const categoryIds = grouped.map((g) => g.categoryId);
+    const categories = await prisma.category.findMany({ where: { id: { in: categoryIds } } });
+    const categoryMap = Object.fromEntries(categories.map((c) => [c.id, c]));
+
+    const breakdown = grouped
+      .map((g) => ({
+        categoryId: g.categoryId,
+        name: categoryMap[g.categoryId]?.name || 'Unknown',
+        icon: categoryMap[g.categoryId]?.icon || null,
+        total: Number(g._sum.amount || 0),
+        count: g._count,
+      }))
+      .sort((a, b) => b.total - a.total);
+
+    res.json({
+      total: Number(totalAgg._sum.amount || 0),
+      count: totalAgg._count,
+      breakdown,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch range summary' });
   }
 });
 
@@ -174,7 +229,6 @@ router.get('/spaces/:spaceId/reports/export.csv', async (req, res) => {
     res.status(500).json({ error: 'Failed to export CSV' });
   }
 });
-// Add after the export.csv route, before module.exports
 
 // GET /api/spaces/:spaceId/reports/export.pdf
 router.get('/spaces/:spaceId/reports/export.pdf', async (req, res) => {
@@ -206,14 +260,11 @@ router.get('/spaces/:spaceId/reports/export.pdf', async (req, res) => {
     const doc = new PDFDocument({ margin: 40 });
     doc.pipe(res);
 
-    // Branded header — logo, app name, space name, generated timestamp,
-    // and the covered date range so the exported file is self-explanatory
-    // even opened weeks later with no other context.
     const logoPath = path.join(__dirname, '..', 'assets', 'icon-512.png');
     try {
       doc.image(logoPath, 40, 36, { width: 36, height: 36 });
     } catch {
-      // Logo file missing — fall back to text-only header, don't fail the export
+      // Logo missing — fall back to text-only header
     }
 
     doc.fontSize(16).fillColor('#0B6E4F').text('Ledger', 86, 40);

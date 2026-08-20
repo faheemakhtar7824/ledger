@@ -28,6 +28,7 @@ export const ENDPOINTS = {
     trend: (spaceId) => `/spaces/${spaceId}/reports/trend`,
     categoryBreakdown: (spaceId) => `/spaces/${spaceId}/reports/category-breakdown`,
     momComparison: (spaceId) => `/spaces/${spaceId}/reports/mom-comparison`,
+    rangeSummary: (spaceId) => `/spaces/${spaceId}/reports/range-summary`,
     exportCsv: (spaceId) => `/spaces/${spaceId}/reports/export.csv`,
     exportPdf: (spaceId) => `/spaces/${spaceId}/reports/export.pdf`,
   },

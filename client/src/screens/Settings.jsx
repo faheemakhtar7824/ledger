@@ -260,7 +260,7 @@ export default function Settings() {
 
       {showRetentionPicker && (
         <RetentionPicker
-          current={user?.expenseRetentionMonths ?? 36}
+          current={user?.expenseRetentionMonths}
           onSelect={handleRetentionSelect}
           onClose={() => setShowRetentionPicker(false)}
         />

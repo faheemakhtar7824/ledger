@@ -40,8 +40,6 @@ function isStrongPassword(password) {
   return regex.test(password);
 }
 
-// Emails are case-insensitive by convention. Normalize on every read/write
-// so lookups are consistent regardless of how it was typed.
 function normalizeEmail(email) {
   return typeof email === 'string' ? email.trim().toLowerCase() : email;
 }
@@ -54,6 +52,7 @@ const COOKIE_OPTIONS = {
 };
 
 const SUPPORTED_CURRENCIES = ["PKR", "USD", "EUR", "GBP", "AED", "SAR", "INR"];
+const RETENTION_OPTIONS = [6, 12, 24, 36, null];
 
 // POST /api/auth/signup
 router.post("/signup", authLimiter, async (req, res) => {
@@ -167,9 +166,7 @@ router.post("/verify-otp", authLimiter, async (req, res) => {
   }
 });
 
-// POST /api/auth/resend-verification — issue a fresh OTP for an
-// unverified account. Same enumeration-safe pattern as forgot-password:
-// don't reveal whether the email exists or is already verified.
+// POST /api/auth/resend-verification
 router.post("/resend-verification", authLimiter, async (req, res) => {
   try {
     const email = normalizeEmail(req.body.email);
@@ -272,6 +269,7 @@ router.post("/login", loginLimiter, async (req, res) => {
         username: user.username,
         email: user.email,
         currencyPreference: user.currencyPreference,
+        expenseRetentionMonths: user.expenseRetentionMonths,
       },
     });
   } catch (err) {
@@ -297,6 +295,7 @@ router.get("/me", requireAuth, async (req, res) => {
         username: true,
         email: true,
         currencyPreference: true,
+        expenseRetentionMonths: true,
       },
     });
 
@@ -336,6 +335,7 @@ router.patch("/me", requireAuth, async (req, res) => {
         username: true,
         email: true,
         currencyPreference: true,
+        expenseRetentionMonths: true,
       },
     });
 
@@ -343,6 +343,28 @@ router.patch("/me", requireAuth, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to update profile" });
+  }
+});
+
+// PATCH /api/auth/retention
+router.patch("/retention", requireAuth, async (req, res) => {
+  try {
+    const { retentionMonths } = req.body;
+
+    if (retentionMonths !== null && !RETENTION_OPTIONS.includes(retentionMonths)) {
+      return res.status(400).json({ error: "Invalid retention period" });
+    }
+
+    const user = await prisma.user.update({
+      where: { id: req.userId },
+      data: { expenseRetentionMonths: retentionMonths },
+      select: { expenseRetentionMonths: true },
+    });
+
+    res.json({ expenseRetentionMonths: user.expenseRetentionMonths });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update retention setting" });
   }
 });
 
