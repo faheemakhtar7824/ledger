@@ -47,7 +47,12 @@ function normalizeEmail(email) {
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
-  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  // Requests are now same-origin (proxied through Vercel's rewrite),
+  // so "lax" works reliably everywhere — including iOS standalone PWA,
+  // which had issues persisting/sending "none" cross-site cookies in
+  // the installed-app WebView context (worked in Safari browser, broke
+  // in the home-screen-installed PWA specifically).
+  sameSite: "lax",
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
 
