@@ -103,12 +103,17 @@ router.post("/signup", authLimiter, async (req, res) => {
       return newUser;
     });
 
-    try {
-      await sendOtpEmail(user.email, otp, "email_verification");
-    } catch (mailErr) {
+    // Fire-and-forget: do NOT await the email send. A slow or hanging
+    // SMTP connection (e.g. Render's occasional IPv6 routing failures to
+    // Gmail) must never delay or fail the HTTP response — the account is
+    // already fully created at this point, and email delivery is a side
+    // effect the client shouldn't have to wait on. The fallback console
+    // log guarantees the OTP is always retrievable server-side even if
+    // the email never arrives.
+    sendOtpEmail(user.email, otp, "email_verification").catch((mailErr) => {
       console.error("Failed to send verification email:", mailErr.message);
       console.log(`[Fallback] OTP for ${user.email}: ${otp}`);
-    }
+    });
 
     res.status(201).json({
       message: "Signup successful. Verify your email with the OTP sent.",
@@ -189,12 +194,10 @@ router.post("/resend-verification", authLimiter, async (req, res) => {
         },
       });
 
-      try {
-        await sendOtpEmail(user.email, otp, "email_verification");
-      } catch (mailErr) {
+      sendOtpEmail(user.email, otp, "email_verification").catch((mailErr) => {
         console.error("Failed to resend verification email:", mailErr.message);
         console.log(`[Fallback] OTP for ${user.email}: ${otp}`);
-      }
+      });
     }
 
     res.json({ message: "If that account needs verification, a new code has been sent." });
@@ -391,12 +394,10 @@ router.post("/forgot-password", authLimiter, async (req, res) => {
         },
       });
 
-      try {
-        await sendOtpEmail(user.email, otp, "password_reset");
-      } catch (mailErr) {
+      sendOtpEmail(user.email, otp, "password_reset").catch((mailErr) => {
         console.error("Failed to send reset email:", mailErr.message);
         console.log(`[Fallback] Password reset OTP for ${user.email}: ${otp}`);
-      }
+      });
     }
 
     res.json({ message: "If that email is registered, a reset code has been sent." });

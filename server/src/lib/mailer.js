@@ -8,10 +8,12 @@ const transporter = nodemailer.createTransport({
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_APP_PASSWORD,
   },
+  // Force IPv4 — Render's network has shown IPv6 routing failures
+  // (ENETUNREACH connecting to Gmail's SMTP servers on IPv6 addresses)
+  // in production. IPv4 avoids that failure path entirely.
+  family: 4,
 });
 
-// Fails loudly at startup if credentials are missing/wrong, rather than
-// silently failing on the first real signup attempt.
 transporter.verify((err) => {
   if (err) {
     console.error('Gmail SMTP configuration error:', err.message);
@@ -29,8 +31,13 @@ function otpEmailHtml(code, purpose) {
 
   return `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 420px; margin: 0 auto; padding: 32px 24px; background: #F5F5F7;">
-      <div style="width: 48px; height: 48px; border-radius: 12px; background: #0B6E4F; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
-      </div>
+      <table cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+        <tr>
+          <td style="width: 48px; height: 48px; border-radius: 12px; background: #0B6E4F; text-align: center; vertical-align: middle;">
+            <span style="color: #F2ECDD; font-size: 22px; font-weight: bold; line-height: 48px;">L</span>
+          </td>
+        </tr>
+      </table>
       <h2 style="color: #1D1D1F; font-size: 20px; font-weight: 500; margin: 0 0 8px;">${heading}</h2>
       <p style="color: #6E6E73; font-size: 14px; margin: 0 0 24px;">${body}</p>
       <div style="background: #FFFFFF; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 20px;">
@@ -41,7 +48,6 @@ function otpEmailHtml(code, purpose) {
   `;
 }
 
-// purpose: 'email_verification' | 'password_reset'
 async function sendOtpEmail(to, code, purpose) {
   const subject = purpose === 'password_reset' ? 'Your Ledger password reset code' : 'Verify your Ledger account';
 
