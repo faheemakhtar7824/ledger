@@ -3,6 +3,8 @@ const router = express.Router();
 const prisma = require('../lib/prisma');
 const requireAuth = require('../middleware/requireAuth');
 const path = require('path');
+const fs = require('fs');
+const PDFDocument = require('pdfkit');
 
 router.use(requireAuth);
 
@@ -261,10 +263,12 @@ router.get('/spaces/:spaceId/reports/export.pdf', async (req, res) => {
     doc.pipe(res);
 
     const logoPath = path.join(__dirname, '..', 'assets', 'icon-512.png');
-    try {
-      doc.image(logoPath, 40, 36, { width: 36, height: 36 });
-    } catch {
-      // Logo missing — fall back to text-only header
+    if (fs.existsSync(logoPath)) {
+      try {
+        doc.image(logoPath, 40, 36, { width: 36, height: 36 });
+      } catch (imgErr) {
+        console.error('PDF logo render failed:', imgErr.message);
+      }
     }
 
     doc.fontSize(16).fillColor('#0B6E4F').text('Ledger', 86, 40);
