@@ -67,6 +67,11 @@ export function AuthProvider({ children }) {
     await api.post(ENDPOINTS.auth.logout);
     setUser(null);
   }, []);
+  
+  const deleteAccount = useCallback(async (password) => {
+  await api.delete('/auth/me', { data: { password } });
+  setUser(null);
+}, []);
 
   const value = {
     user,

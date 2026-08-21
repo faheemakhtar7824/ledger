@@ -469,5 +469,29 @@ router.post("/reset-password", authLimiter, async (req, res) => {
     res.status(500).json({ error: "Failed to reset password" });
   }
 });
+router.delete("/me", requireAuth, async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).json({ error: "Password is required to delete your account" });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: req.userId } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    if (!valid) {
+      return res.status(401).json({ error: "Incorrect password" });
+    }
+
+    await prisma.user.delete({ where: { id: user.id } });
+
+    res.clearCookie("token", COOKIE_OPTIONS);
+    res.json({ message: "Account permanently deleted" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to delete account" });
+  }
+});
 
 module.exports = router;

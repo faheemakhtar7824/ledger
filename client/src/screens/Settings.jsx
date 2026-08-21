@@ -7,6 +7,7 @@ import Avatar from '../components/Avatar';
 import ThemeToggleSwitch from '../components/ThemeToggleSwitch';
 import CurrencyPicker from '../components/CurrencyPicker';
 import RetentionPicker from '../components/RetentionPicker';
+import DeleteAccountSheet from '../components/DeleteAccountSheet';
 
 function retentionLabel(months) {
   if (months === null || months === undefined) return 'Never';
@@ -18,7 +19,7 @@ function retentionLabel(months) {
 }
 
 export default function Settings() {
-  const { user, logout, updateCurrency, updateRetention } = useAuth();
+  const { user, logout, updateCurrency, updateRetention, deleteAccount } = useAuth();
   const { spaces, activeSpaceId, switchSpace, createSpace, deleteSpace } = useSpace();
   const navigate = useNavigate();
 
@@ -30,6 +31,7 @@ export default function Settings() {
   const [deleting, setDeleting] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [showRetentionPicker, setShowRetentionPicker] = useState(false);
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
 
   async function handleAddSpace() {
     if (!newSpaceName.trim()) return;
@@ -77,6 +79,11 @@ export default function Settings() {
 
   async function handleLogout() {
     await logout();
+    navigate('/login');
+  }
+
+  async function handleDeleteAccount(password) {
+    await deleteAccount(password);
     navigate('/login');
   }
 
@@ -243,10 +250,21 @@ export default function Settings() {
       </div>
 
       <p className="settings-group-label">Account</p>
-      <div className="settings-row" style={{ borderBottom: 'none', cursor: 'pointer' }} onClick={handleLogout}>
+      <div className="settings-row" style={{ cursor: 'pointer' }} onClick={handleLogout}>
         <i className="ti ti-logout" style={{ color: 'var(--text-danger)' }}></i>
         <span className="settings-row-label" style={{ color: 'var(--text-danger)' }}>
           Log out
+        </span>
+      </div>
+
+      <div
+        className="settings-row"
+        style={{ borderBottom: 'none', cursor: 'pointer' }}
+        onClick={() => setShowDeleteAccount(true)}
+      >
+        <IconTrash size={17} color="var(--text-danger)" />
+        <span className="settings-row-label" style={{ color: 'var(--text-danger)' }}>
+          Delete account
         </span>
       </div>
 
@@ -263,6 +281,13 @@ export default function Settings() {
           current={user?.expenseRetentionMonths}
           onSelect={handleRetentionSelect}
           onClose={() => setShowRetentionPicker(false)}
+        />
+      )}
+
+      {showDeleteAccount && (
+        <DeleteAccountSheet
+          onConfirm={handleDeleteAccount}
+          onClose={() => setShowDeleteAccount(false)}
         />
       )}
     </div>
