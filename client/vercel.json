@@ -6,3 +6,15 @@
     }
   ]
 }
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://ledger-1-61gq.onrender.com/api/:path*"
+    },
+    {
+      "source": "/((?!api).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
