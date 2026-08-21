@@ -63,15 +63,15 @@ export function AuthProvider({ children }) {
     return res.data;
   }, []);
 
+  const deleteAccount = useCallback(async (password) => {
+    await api.delete('/auth/me', { data: { password } });
+    setUser(null);
+  }, []);
+
   const logout = useCallback(async () => {
     await api.post(ENDPOINTS.auth.logout);
     setUser(null);
   }, []);
-  
-  const deleteAccount = useCallback(async (password) => {
-  await api.delete('/auth/me', { data: { password } });
-  setUser(null);
-}, []);
 
   const value = {
     user,
@@ -84,6 +84,7 @@ export function AuthProvider({ children }) {
     resetPassword,
     updateCurrency,
     updateRetention,
+    deleteAccount,
     logout,
   };
 
