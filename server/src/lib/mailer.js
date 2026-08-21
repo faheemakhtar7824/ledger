@@ -1,10 +1,6 @@
-const brevo = require('@getbrevo/brevo');
+const axios = require('axios');
 
-// Brevo's HTTP transactional email API — sends via HTTPS POST, not raw
-// SMTP sockets. This avoids the intermittent SMTP connection failures
-// (ENETUNREACH, timeouts) seen with Gmail SMTP from Render's network.
-const apiInstance = new brevo.TransactionalEmailsApi();
-apiInstance.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
+const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
 
 function otpEmailHtml(code, purpose) {
   const heading = purpose === 'password_reset' ? 'Reset your password' : 'Verify your email';
@@ -35,13 +31,22 @@ function otpEmailHtml(code, purpose) {
 async function sendOtpEmail(to, code, purpose) {
   const subject = purpose === 'password_reset' ? 'Your Ledger password reset code' : 'Verify your Ledger account';
 
-  const email = new brevo.SendSmtpEmail();
-  email.subject = subject;
-  email.htmlContent = otpEmailHtml(code, purpose);
-  email.sender = { name: 'Ledger', email: process.env.BREVO_SENDER_EMAIL };
-  email.to = [{ email: to }];
-
-  await apiInstance.sendTransacEmail(email);
+  await axios.post(
+    BREVO_API_URL,
+    {
+      sender: { name: 'Ledger', email: process.env.BREVO_SENDER_EMAIL },
+      to: [{ email: to }],
+      subject,
+      htmlContent: otpEmailHtml(code, purpose),
+    },
+    {
+      headers: {
+        'api-key': process.env.BREVO_API_KEY,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+    }
+  );
 }
 
 module.exports = { sendOtpEmail };

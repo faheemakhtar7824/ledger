@@ -13,6 +13,7 @@ const budgetRoutes = require('./src/routes/budget');
 const reportsRoutes = require('./src/routes/reports');
 
 const app = express();
+app.set('trust proxy', 1);
 
 app.use(helmet());
 
