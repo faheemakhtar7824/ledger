@@ -90,14 +90,14 @@ function TotalSpentBlock({ total, trendState, trendPct, currency }) {
   );
 }
 
-function MetricGrid({ hasBudget, budgetLeft, txnCount, currency }) {
+function MetricGrid({ hasBudget, budgetLeft, txnCount, currency, onTapBudget, onTapTransactions }) {
   return (
     <div className="metric-grid">
-      <div className="metric-card">
+      <div className="metric-card" style={{ cursor: 'pointer' }} onClick={onTapBudget}>
         <p>Budget left</p>
         <p className="tabular-nums">{hasBudget ? formatMoney(budgetLeft, currency) : 'Not set'}</p>
       </div>
-      <div className="metric-card">
+      <div className="metric-card" style={{ cursor: 'pointer' }} onClick={onTapTransactions}>
         <p>Transactions</p>
         <p className="tabular-nums">{txnCount}</p>
       </div>
@@ -266,7 +266,14 @@ export default function Dashboard() {
 
           <TotalSpentBlock total={data.total} trendState={data.trendState} trendPct={data.trendPct} currency={currency} />
 
-          <MetricGrid hasBudget={data.hasBudget} budgetLeft={data.budgetLeft} txnCount={data.txnCount} currency={currency} />
+          <MetricGrid
+  hasBudget={data.hasBudget}
+  budgetLeft={data.budgetLeft}
+  txnCount={data.txnCount}
+  currency={currency}
+  onTapBudget={() => navigate('/budget')}
+  onTapTransactions={() => navigate('/history')}
+/>
 
           <CategoryBars
             categories={data.categories}

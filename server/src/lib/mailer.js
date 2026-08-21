@@ -1,26 +1,10 @@
-const nodemailer = require('nodemailer');
+const brevo = require('@getbrevo/brevo');
 
-// Gmail SMTP transport via App Password — no domain verification needed,
-// unlike Resend, since Gmail's own infrastructure sends the mail.
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD,
-  },
-  // Force IPv4 — Render's network has shown IPv6 routing failures
-  // (ENETUNREACH connecting to Gmail's SMTP servers on IPv6 addresses)
-  // in production. IPv4 avoids that failure path entirely.
-  family: 4,
-});
-
-transporter.verify((err) => {
-  if (err) {
-    console.error('Gmail SMTP configuration error:', err.message);
-  } else {
-    console.log('Gmail SMTP ready to send emails');
-  }
-});
+// Brevo's HTTP transactional email API — sends via HTTPS POST, not raw
+// SMTP sockets. This avoids the intermittent SMTP connection failures
+// (ENETUNREACH, timeouts) seen with Gmail SMTP from Render's network.
+const apiInstance = new brevo.TransactionalEmailsApi();
+apiInstance.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
 
 function otpEmailHtml(code, purpose) {
   const heading = purpose === 'password_reset' ? 'Reset your password' : 'Verify your email';
@@ -51,12 +35,13 @@ function otpEmailHtml(code, purpose) {
 async function sendOtpEmail(to, code, purpose) {
   const subject = purpose === 'password_reset' ? 'Your Ledger password reset code' : 'Verify your Ledger account';
 
-  await transporter.sendMail({
-    from: `"Ledger" <${process.env.GMAIL_USER}>`,
-    to,
-    subject,
-    html: otpEmailHtml(code, purpose),
-  });
+  const email = new brevo.SendSmtpEmail();
+  email.subject = subject;
+  email.htmlContent = otpEmailHtml(code, purpose);
+  email.sender = { name: 'Ledger', email: process.env.BREVO_SENDER_EMAIL };
+  email.to = [{ email: to }];
+
+  await apiInstance.sendTransacEmail(email);
 }
 
 module.exports = { sendOtpEmail };
