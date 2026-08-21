@@ -7,16 +7,24 @@ export default function DeleteAccountSheet({ onConfirm, onClose }) {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const canSubmit = confirmText.trim().toUpperCase() === 'DELETE' && password.length > 0;
-
   async function handleSubmit() {
-    if (!canSubmit) return;
     setError('');
+
+    if (confirmText.trim().toUpperCase() !== 'DELETE') {
+      setError('Type DELETE exactly to confirm');
+      return;
+    }
+    if (!password) {
+      setError('Enter your password');
+      return;
+    }
+
     setSubmitting(true);
     try {
       await onConfirm(password);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to delete account');
+      console.error('Delete account error:', err);
+      setError(err.response?.data?.error || err.message || 'Failed to delete account');
       setSubmitting(false);
     }
   }
@@ -56,7 +64,6 @@ export default function DeleteAccountSheet({ onConfirm, onClose }) {
             placeholder="DELETE"
             value={confirmText}
             onChange={(e) => setConfirmText(e.target.value)}
-            autoCapitalize="characters"
           />
 
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6, marginTop: 4 }}>
@@ -70,7 +77,7 @@ export default function DeleteAccountSheet({ onConfirm, onClose }) {
 
           <button
             onClick={handleSubmit}
-            disabled={!canSubmit || submitting}
+            disabled={submitting}
             style={{
               width: '100%',
               marginTop: 16,
@@ -81,8 +88,8 @@ export default function DeleteAccountSheet({ onConfirm, onClose }) {
               color: '#fff',
               fontSize: 15,
               fontWeight: 500,
-              cursor: canSubmit ? 'pointer' : 'not-allowed',
-              opacity: canSubmit ? 1 : 0.5,
+              cursor: submitting ? 'not-allowed' : 'pointer',
+              opacity: submitting ? 0.6 : 1,
             }}
           >
             {submitting ? 'Deleting…' : 'Permanently delete my account'}
